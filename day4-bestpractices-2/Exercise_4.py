@@ -22,42 +22,39 @@ plt.rc('lines', markersize=3)  # size of markers
 pylab.rcParams['xtick.major.pad'] = '10'  # increases the distance from the ticks from the respective axis
 pylab.rcParams['ytick.major.pad'] = '10'  # increases the distance form the ticks from the respective axis
 
+#Load Data
 exp_data = np.load("I_q_IPA_exp.npy")
 theoretical_data = np.load("I_q_IPA_model.npy")
 
 # interpolate Theoretical Data
-inter = interpolate.interp1d(theoretical_data[:, 0], theoretical_data[:, 1])
-x_theo_interpolated = np.arange(0, theoretical_data[-1, 0], 0.1)
+func_theory_interpolated = interpolate.interp1d(theoretical_data[:, 0], theoretical_data[:, 1])
+theoretical_data_interpolated = func_theory_interpolated(exp_data[:, 0])
 
-scaled_model_data = theoretical_data[:, 1]
-y_theo_interpolated = inter(exp_data[:, 0])  # use interpolation function returned by `interp1d`
+# Define a function for the mean square displacement
+def scaling_f(x):
+    return np.nansum((exp_data[:, 1] - x * theoretical_data_interpolated)**2)
 
+# Find the scaling factor
+scaling_factor = minimize_scalar(scaling_f)
+print(scaling_factor)
 
-def f(x):
-    y = x * y_theo_interpolated/exp_data[:, 1]
-    return y
-
-
-res = minimize_scalar(f)
-print(res.x)
+# Rescale theoretical data
+theoretical_data_rescaled = theoretical_data_interpolated*(scaling_factor.x)
 
 fig = plt.figure()
 ax = fig.add_subplot(111)
-plt.plot(exp_data[:, 0], exp_data[:, 1], 'o', label="Exp Data", color="blue")
-# plt.plot(xnew, ynew, "--", label="Theory", color="black")
-plt.plot(theoretical_data[:, 0], theoretical_data[:, 1] / 10000, marker="o", label="Rescaled Theo. Data", color="red")
-# plt.plot(x_theo_interpolated, y_theo_interpolated/10000, label="Rescaled Theo. Data", color="red")
+plt.plot(exp_data[:, 0], exp_data[:, 1], 'o', label="Exp. Data", color="blue")
+plt.plot(exp_data[:, 0], theoretical_data_rescaled, ls="-", label="Rescaled Theo. Data", color="blue", alpha=0.4 )
 
 
 ax.set_xlabel(r'Scattering Strength')
 ax.set_ylabel(r'Scattering Vector')
-plt.legend(loc="upper right", frameon=False, labelspacing=0.4,
-           labelcolor='linecolor', handletextpad=1.0, handlelength=0.0)
+plt.legend(loc="upper left")
 
 # +++++++++++Define data range to be shown+++++++++++
 
 # plt.ylim(5, 40)
-# plt.xlim(0, 18)
+plt.xlim(0, 18.5)
 
 # ++++++++++++Define tick parameters++++++++++++++++++++++++++++++
 
@@ -67,12 +64,13 @@ plt.tick_params(which="minor", direction='in', length=4, width=2, bottom=True, t
 # ++++++++++++Locate major and minor ticks+++++++++++++++++++++++
 
 # X-AXIS
-# ax.xaxis.set_major_locator(MultipleLocator(4))
-# ax.xaxis.set_minor_locator(MultipleLocator(2))
+ax.xaxis.set_major_locator(MultipleLocator(5))
+ax.xaxis.set_minor_locator(MultipleLocator(2.5))
 
 # Y-AXIS
-# ax.yaxis.set_major_locator(MultipleLocator(5))
-# ax.yaxis.set_minor_locator(MultipleLocator(2.5))
+ax.yaxis.set_major_locator(MultipleLocator(10))
+ax.yaxis.set_minor_locator(MultipleLocator(5))
+
 # Define labels of ticks
 plt.tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False)
 
